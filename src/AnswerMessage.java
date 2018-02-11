@@ -24,4 +24,6 @@ public class AnswerMessage implements Serializable {
     public File[] getFiles() {
         return files;
     }
+
+
 }

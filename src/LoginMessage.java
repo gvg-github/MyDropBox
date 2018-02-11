@@ -2,25 +2,44 @@ import java.io.Serializable;
 
 public class LoginMessage implements Serializable {
 
-    private String name;
-    private String pass;
+    private String strongName;
+//    private String name;
+//    private String pass;
     private boolean newUser;
 
-    public LoginMessage(String name, String pass, boolean newUser) {
-        this.name = name;
-        this.pass = pass;
+    //    public LoginMessage(String strongName, String name, String pass, boolean newUser) {
+//        this.strongName = strongName;
+//        this.name = name;
+//        this.pass = pass;
+//        this.newUser = newUser;
+//    }
+    public LoginMessage(String strongName, boolean newUser) {
+        this.strongName = strongName;
         this.newUser = newUser;
     }
 
-    public String getName() {
-        return name;
-    }
+//    public LoginMessage(boolean needLogin) {
+//
+//        this.needLogin = needLogin;
+//    }
 
-    public String getPass() {
-        return pass;
-    }
+//    public String getName() {
+//        return name;
+//    }
+//
+//    public String getPass() {
+//        return pass;
+//    }
 
-    public boolean getNewUser(){
+    public boolean isNewUser() {
         return newUser;
     }
+
+    public String getStrongName() {
+        return strongName;
+    }
+
+    //    public boolean isNeedLogin() {
+//        return needLogin;
+//    }
 }

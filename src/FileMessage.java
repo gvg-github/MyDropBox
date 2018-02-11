@@ -2,32 +2,30 @@ import java.io.Serializable;
 
 public class FileMessage implements Serializable {
     private String name;
-    private byte[] data;
-    private boolean delete;
+//    private byte[] data;
+    private Enum action;
     private String newName;
     private String tecPath;
-    private boolean refresh;
 
-    public FileMessage(String name, byte[] data, boolean delete, boolean refresh, String newName, String tecPath) {
+    public FileMessage(String name, TypeFileActionEnum action, String newName, String tecPath) {
         this.name = name;
-        this.data = data;
-        this.delete = delete;
+//        this.data = data;
+        this.action = action;
         this.newName = newName;
         this.tecPath = tecPath;
-        this.refresh = refresh;
+    }
+
+    public Enum getAction() {
+        return action;
     }
 
     public String getName() {
         return name;
     }
 
-    public byte[] getData() {
-        return data;
-    }
-
-    public boolean isDelete() {
-        return delete;
-    }
+//    public byte[] getData() {
+//        return data;
+//    }
 
     public String getNewName() {
         return newName;
@@ -37,7 +35,4 @@ public class FileMessage implements Serializable {
         return tecPath;
     }
 
-    public boolean isRefresh() {
-        return refresh;
-    }
 }

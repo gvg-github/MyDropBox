@@ -1,8 +1,10 @@
 import java.sql.*;
 import java.util.HashMap;
-import java.util.Set;
+import java.util.UUID;
 
 public class BD {
+
+    private String userUid;
     //    private Connection connection;
     private HashMap<ServerThread, Connection> connections = new HashMap<>();
 
@@ -37,8 +39,9 @@ public class BD {
         if (connection != null) {
             try {
                 Statement statement = connection.createStatement();
-                ResultSet rs = statement.executeQuery("SELECT id FROM Users WHERE USER = '" + log + "' AND PASS = '" + pass + "'");
+                ResultSet rs = statement.executeQuery("SELECT id, uid FROM Users WHERE USER = '" + log + "' AND PASS = '" + pass + "'");
                 if (rs.next()) {
+                    userUid = rs.getString("uid");
                     userFind = true;
                 }
                 rs.close();
@@ -72,10 +75,12 @@ public class BD {
             Connection connection = getConnection(thread);
             if (connection != null) {
                 try {
+                    userUid = createUID();
 //                    String text = "INSERT INTO Users (USER, PASS) values('" + log + "','" + pass + "')";
                     Statement statement = connection.createStatement();
-                    statement.execute("INSERT INTO Users (USER, PASS) VALUES('" + log + "','" + pass + "')");
-                    if (Network.makeDir(log)) {
+
+                    statement.execute("INSERT INTO Users (USER, PASS, uid) VALUES('" + log + "','" + pass + "','" + userUid + "')");
+                    if (WorkWithFiles.makeDir(userUid)) {
                         userCreated = true;
                     }
 
@@ -85,7 +90,16 @@ public class BD {
             }
         }
         return userCreated;
+    }
 
+
+    public String createUID(){
+        UUID id1 = UUID.randomUUID();
+        return id1.toString();
+    }
+
+    public String getUserUid() {
+        return userUid;
     }
 
     public String getFile(ServerThread thread) {

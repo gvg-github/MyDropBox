@@ -3,11 +3,9 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
-public class ServerGUI implements ActionListener {
+class ServerGUI extends JFrame implements ActionListener {
 
-    private JFrame frame;
     private JTextArea textArea;
-    private ServerThread sThread;
     private MultiThreadServer server;
 
     public static void main(String[] args) {
@@ -15,10 +13,15 @@ public class ServerGUI implements ActionListener {
     }
 
     private ServerGUI() {
+        start();
+    }
 
-        frame = new JFrame("Server window");
-        frame.setSize(450, 300);
-        frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
+    private void start(){
+
+        setTitle("Server window");
+        setSize(390, 200);
+        setResizable(false);
+        setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
 
         JPanel buttonPanel = new JPanel();
         JButton startButton = new JButton("Start server");
@@ -31,17 +34,16 @@ public class ServerGUI implements ActionListener {
 
         textArea = new JTextArea();
 
-        frame.add(buttonPanel, BorderLayout.NORTH);
-        frame.add(new JScrollPane(textArea), BorderLayout.CENTER);
-        frame.setVisible(true);
-
+        getContentPane().add(buttonPanel, BorderLayout.NORTH);
+        getContentPane().add(new JScrollPane(textArea), BorderLayout.CENTER);
+        setVisible(true);
     }
 
     @Override
     public void actionPerformed(ActionEvent e) {
         if (e.getActionCommand().equals("Start server")) {
 
-            server = new MultiThreadServer(textArea, 8089);
+            server = new MultiThreadServer(textArea, Consts.PORT);
             server.start();
 
 

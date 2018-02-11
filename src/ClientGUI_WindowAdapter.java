@@ -6,11 +6,11 @@ import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
 
-public class WindowAdapter implements WindowListener {
+public class ClientGUI_WindowAdapter implements WindowListener {
 
     private ClientGUI myFrame;
 
-    public WindowAdapter(ClientGUI myFrame){
+    public ClientGUI_WindowAdapter(ClientGUI myFrame){
         this.myFrame = myFrame;
     }
 
