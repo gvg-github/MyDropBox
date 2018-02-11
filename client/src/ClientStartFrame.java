@@ -22,7 +22,7 @@ public class ClientStartFrame extends JFrame {
     private SecretKey clientKey;
     private ClientGUI client;
 
-    private JTextField ipAdress = new JTextField("localhost", 12);
+    private JTextField ipAdress = new JTextField("localhost", 8);
     private JTextField port;
     private JButton autoConnectButton;
     private JButton connectButton;
@@ -71,7 +71,7 @@ public class ClientStartFrame extends JFrame {
         textArea.setOpaque(false);
         textArea.setFont(Font.getFont(Font.DIALOG));
 
-        JPanel fieldsPanel1 = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        JPanel fieldsPanel1 = new JPanel(new FlowLayout(FlowLayout.CENTER));
         JLabel ipText = new JLabel("Server IP:");
         JLabel portText = new JLabel("port:");
         ipText.setFont(otherFont);
@@ -137,7 +137,15 @@ public class ClientStartFrame extends JFrame {
                 }
             }
         }else{
+
             try {
+                if (!loadFile.exists()){
+                    try {
+                        loadFile.createNewFile();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
                 stb.append(ipAdress.getText() + ";" + port.getText());
                 FileWriter fwr = new FileWriter(loadFile, false);
                 fwr.write(stb.toString());

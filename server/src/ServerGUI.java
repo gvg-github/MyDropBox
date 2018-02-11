@@ -33,6 +33,7 @@ class ServerGUI extends JFrame implements ActionListener {
         buttonPanel.add(stopButton);
 
         textArea = new JTextArea();
+        textArea.setEditable(false);
 
         getContentPane().add(buttonPanel, BorderLayout.NORTH);
         getContentPane().add(new JScrollPane(textArea), BorderLayout.CENTER);
