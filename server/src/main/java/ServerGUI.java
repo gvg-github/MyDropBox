@@ -7,7 +7,7 @@ import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 
-class ServerGUI extends JFrame implements ActionListener, ItemListener {
+class ServerGUI extends JFrame implements ActionListener {
 
     private JTextArea textArea;
     private MultiThreadServer server;
@@ -32,7 +32,6 @@ class ServerGUI extends JFrame implements ActionListener, ItemListener {
         JPanel buttonPanel = new JPanel();
         startButton = new JButton("Start server");
         startButton.setMnemonic(java.awt.event.KeyEvent.VK_R);
-        startButton.addItemListener(this);
         startButton.addActionListener(this);
         stopButton = new JButton("Stop server");
         stopButton.setMnemonic(java.awt.event.KeyEvent.VK_S);
@@ -61,10 +60,5 @@ class ServerGUI extends JFrame implements ActionListener, ItemListener {
         }
     }
 
-    @Override
-    public void itemStateChanged(ItemEvent e) {
-        if (e.getItem() == startButton){
-            startButton.setEnabled(true);
-        }
-    }
+
 }

@@ -37,12 +37,13 @@ public class ClientStartFrame extends JFrame {
     private JTextArea textArea;
     boolean breakConnect = false;
     private int userSize;
+    private ProgressFrame dialogFrame;
 
     public ClientStartFrame() {
 
         setTitle("Connect to server");
         setResizable(false);
-        setLocation(500, 100);
+        setLocation(500, 250);
         setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
 
         KeyboardFocusManager manager = KeyboardFocusManager.getCurrentKeyboardFocusManager();
@@ -93,7 +94,7 @@ public class ClientStartFrame extends JFrame {
         JLabel portText = new JLabel("port:");
         autoConnect = new JCheckBox();
         autoConnect.setToolTipText("For break press \"Ctrl\" + \"Q\"");
-        ;
+
         ipText.setFont(otherFont);
         portText.setFont(otherFont);
         fieldsPanel1.add(ipText);
@@ -124,7 +125,6 @@ public class ClientStartFrame extends JFrame {
         loginButton.addActionListener(new StartActionListener(this));
         registerButton = new JButton("Register");
         registerButton.addActionListener(new StartActionListener(this));
-//        registerButton.setToolTipText("For break press \"Ctrl\"");
 
         changePassButton = new JButton("Change password");
         changePassButton.addActionListener(new StartActionListener(this));
@@ -163,6 +163,7 @@ public class ClientStartFrame extends JFrame {
         add(textPanel, BorderLayout.SOUTH);
 
         pack();
+        dialogFrame = new ProgressFrame();
         setVisible(true);
     }
 
@@ -220,11 +221,10 @@ public class ClientStartFrame extends JFrame {
     }
 
     private void closeStartFrame() {
-        MyProgressBar pBar = new MyProgressBar();
-
+        ProgressFrame pgFrame = new ProgressFrame();
         setVisible(false);
         readWriteSystemFile(false);
-        new ClientGUI(pBar, clientSocket, userFiles, userSize, login.getText());
+        new ClientGUI(pgFrame, clientSocket, userFiles, userSize, login.getText());
         dispose();
     }
 
@@ -289,8 +289,8 @@ public class ClientStartFrame extends JFrame {
             int ret = fileChooser.showDialog(null, "Select file");
             if (ret == JFileChooser.APPROVE_OPTION) {
                 File file = fileChooser.getSelectedFile();
+                dialogFrame.changeVisible(true);
                 try {
-
                     String fileID = idField.getText();
                     FileMessage fm = new FileMessage(null, FileActionEnum.GET, null, fileID);
                     ObjectOutputStream oos = new ObjectOutputStream(clientSocket.getOutputStream());
@@ -320,54 +320,38 @@ public class ClientStartFrame extends JFrame {
                 } catch (IOException e1) {
                     e1.printStackTrace();
                 }
+                dialogFrame.changeVisible(false);
             }
         }
 
         private boolean tryConnect() {
             boolean socketUp = false;
-            breakConnect = false;
-            boolean connected = connectToSocket();
 
-//            if (autoConnect.isSelected()){
-//                boolean connected = false;
-//                while (!connected && !breakConnect) {
-//                    connected = connectToSocket();
-//                    if (connected) break;
-//                    try {
-//                        sleep(2000);
-//                    } catch (InterruptedException e1) {
-//                        e1.printStackTrace();
-//                    }
-//                }
-//                breakConnect = false;
-//                Thread connectThread = new Thread(() -> {
-//                    boolean connected = false;
-//                    while (!connected && !breakConnect) {
-//                        connected = connectToSocket();
-//                        if (connected) break;
-//                        try {
-//                            sleep(2000);
-//                        } catch (InterruptedException e1) {
-//                            e1.printStackTrace();
-//                        }
-//                    }
+            if (autoConnect.isSelected()) {
+
+                breakConnect = false;
+                new Thread(() -> {
+                    while (true) {
+                        if (connectToSocket()) break;
+                        if (breakConnect) break;
+                        try {
+                            sleep(2000);
+                        } catch (InterruptedException e1) {
+                            e1.printStackTrace();
+                        }
+                    }
 //                    Thread.currentThread().interrupt();
-//
-////                    if (breakConnect) {
-////                        textArea.append("Auto connection stopped by user. \n");
-////                        breakConnect = false;
-////                    }
-//
-//                });
-//
-//                connectThread.start();
-//                if (breakConnect) {
-//                    textArea.append("Auto connection stopped by user. \n");
-//                    breakConnect = false;
-//                }
-//            }else{
-//                boolean connected = connectToSocket();
-//            }
+
+                    if (breakConnect) {
+                        textArea.append("Auto connection stopped by user. \n");
+                        breakConnect = false;
+                    }
+
+                }).start();
+
+            } else {
+                socketUp = connectToSocket();
+            }
 
             if (clientSocket != null) {
                 socketUp = true;
@@ -526,7 +510,6 @@ public class ClientStartFrame extends JFrame {
             setResizable(false);
             setLocation(500, 100);
             setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
-//        JDialog passDialog = new JDialog(this, "Enter new password");
             JPasswordField passwordNew = new JPasswordField(10);
             passwordNew.setFont(new Font("TimesRoman", Font.BOLD, 16));
             JButton setPass = new JButton("OK");
@@ -552,5 +535,4 @@ public class ClientStartFrame extends JFrame {
             setVisible(true);
         }
     }
-
 }

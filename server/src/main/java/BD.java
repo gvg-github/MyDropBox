@@ -13,7 +13,6 @@ public class BD {
 
     private String userUID;
     private String userId;
-    //    private Connection connection;
     private HashMap<ServerThread, Connection> connections = new HashMap<>();
 
     {
@@ -24,18 +23,18 @@ public class BD {
         }
     }
 
-    public void disconnect(ServerThread thread) {
-        Connection connection = null;
-        if (connections.containsKey(thread)) {
-            connection = connections.get(thread);
-            try {
-                connection.close();
-                connections.remove(thread);
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
-        }
-    }
+//    public void disconnect(ServerThread thread) {
+//        Connection connection = null;
+//        if (connections.containsKey(thread)) {
+//            connection = connections.get(thread);
+//            try {
+//                connection.close();
+//                connections.remove(thread);
+//            } catch (SQLException e) {
+//                e.printStackTrace();
+//            }
+//        }
+//    }
 
     private synchronized Connection getConnection(ServerThread thread) {
         Connection connection = null;
@@ -58,7 +57,6 @@ public class BD {
         if (connection != null) {
 
             Statement statement = connection.createStatement();
-//            ResultSet rs = statement.executeQuery("SELECT id, uid, PASS FROM Users WHERE USER = '" + log + "'");
             ResultSet rs = statement.executeQuery("SELECT PASS FROM Users WHERE USER = '" + log + "'");
             if (rs.next()) {
                 String passFromBD = rs.getString("PASS");

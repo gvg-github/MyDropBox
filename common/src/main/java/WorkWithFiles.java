@@ -9,18 +9,8 @@ import java.nio.file.StandardOpenOption;
 public class WorkWithFiles {
     public static final String DIR_PATH = "D:\\FilesDB\\";
 
-    public static String getFullPath(String tecPath) {
-        return new String(DIR_PATH + tecPath);
-    }
-
-//    public static boolean saveFileOnDisk(String dir, FileMessage fm) {
-//        try {
-//            Files.write(Paths.get(dir), fm.getData(), StandardOpenOption.CREATE_NEW);
-//            return true;
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
-//        return false;
+//    public static String getFullPath(String tecPath) {
+//        return new String(DIR_PATH + tecPath);
 //    }
 
     public static boolean saveFileOnDisk(String dir, byte[] arr) {

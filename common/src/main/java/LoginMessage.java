@@ -3,7 +3,6 @@ import java.io.Serializable;
 public class LoginMessage implements Serializable {
 
     private String strongName;
-    private boolean newUser;
     private UserActionEnum userActionEnum;
 
     public LoginMessage(String strongName, UserActionEnum userAction) {

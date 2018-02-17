@@ -1,4 +1,3 @@
-import javax.crypto.SecretKey;
 import javax.swing.*;
 import javax.swing.event.TreeSelectionEvent;
 import javax.swing.event.TreeSelectionListener;
@@ -11,7 +10,6 @@ import java.net.Socket;
 
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.Timer;
 
 import static java.lang.Thread.sleep;
 
@@ -45,22 +43,21 @@ class ClientGUI extends JFrame implements ActionListener {
 
     private Socket clientSocket;
     private boolean LogIn;
-    private ObjectOutputStream oos;
     private String login;
     private int userSize;
     private JProgressBar sizeBar;
     private TimerLabel timerLabel;
 
-    private MyProgressBar pBar;
+    private ProgressFrame dialogFrame;
 
-    public ClientGUI(MyProgressBar pBar, Socket clientSocket, File[] userFiles, int userSize, String login) {
+    public ClientGUI(ProgressFrame pgFrame, Socket clientSocket, File[] userFiles, int userSize, String login) {
         this();
-        this.pBar = pBar;
         this.clientSocket = clientSocket;
         this.login = login;
         this.LogIn = true;
         this.userSize = convertToMb(userSize);
         refreshTree(userFiles);
+        dialogFrame = pgFrame;
     }
 
     public ClientGUI() {
@@ -75,7 +72,6 @@ class ClientGUI extends JFrame implements ActionListener {
         setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         addWindowListener(new ClientGUI_WindowAdapter(this));
 
-//        Font otherFont = new Font("TimesRoman", Font.BOLD, 15);
 
         timerLabel = new TimerLabel(this);
         timerLabel.setFont(new Font(timerLabel.getFont().getFontName(), timerLabel.getFont().getStyle(), 25));
@@ -120,7 +116,6 @@ class ClientGUI extends JFrame implements ActionListener {
         buttonsPanel.add(transferFileButton);
         buttonsPanel.add(deleteFileButton);
         JLabel folderActions = new JLabel("Actions with folders:");
-//        fileActions.setHorizontalTextPosition(SwingConstants.LEADING);
         folderActions.setBorder(BorderFactory.createBevelBorder(0));
         buttonsPanel.add(folderActions);
         buttonsPanel.add(createDirButton);
@@ -135,7 +130,6 @@ class ClientGUI extends JFrame implements ActionListener {
         centerPanel.add(new JScrollPane(textArea), BorderLayout.CENTER);
         centerPanel.setBorder(BorderFactory.createBevelBorder(1));
 
-        //Дерево файлов пользователя
         contents = new JPanel(new BorderLayout());
         sizeBar = new JProgressBar();
         sizeBar.setName("Size used:");
@@ -145,6 +139,7 @@ class ClientGUI extends JFrame implements ActionListener {
         sizeBar.setValue(userSize);
         sizeBar.setBorder(BorderFactory.createBevelBorder(1));
 
+        //Дерево файлов пользователя
         tree1 = new JTree(createTreeModel("User files will be here...", null));
         contents.add(new JScrollPane(tree1), BorderLayout.CENTER);
         contents.add(sizeBar, BorderLayout.NORTH);
@@ -158,7 +153,6 @@ class ClientGUI extends JFrame implements ActionListener {
 
         setMinimumSize(getSize());
         setVisible(true);
-
     }
 
     private int convertToMb(int userSize) {
@@ -167,7 +161,6 @@ class ClientGUI extends JFrame implements ActionListener {
 
     public void closeClientFrame(String msg) {
 
-//        clientFrame.setVisible(false);
         try {
             clientSocket.close();
             clientSocket = null;
@@ -177,7 +170,6 @@ class ClientGUI extends JFrame implements ActionListener {
             } else {
                 new ClientStartFrame();
             }
-//        clientFrame.dispose();
             dispose();
         } catch (IOException e) {
             e.printStackTrace();
@@ -190,8 +182,6 @@ class ClientGUI extends JFrame implements ActionListener {
 
     private void restartTimer() {
         timerLabel.restartTimer();
-
-//        timerLabel.setFont(new Font(timerLabel.getFont().getFontName(), timerLabel.getFont().getStyle(), 25));
     }
 
     @Override
@@ -318,8 +308,7 @@ class ClientGUI extends JFrame implements ActionListener {
                 }
             }
             textArea.append(ansMsg.getMsg() + "\n");
-//                        ois.close();
-//                    oos.close();
+
         }
     }
 
@@ -345,21 +334,15 @@ class ClientGUI extends JFrame implements ActionListener {
                     StringBuilder newSelectedPath = selectedPath.delete(index, selectedPath.length());
                     filename = newSelectedPath.toString() + "\\" + file.getName();
                 }
-                pBar.setShowBar(true);
-//                showBar = true;
-//                showProgressBar();
-//                MessageSender messageThread = new MessageSender(file, filename, clientSocket);
-//                messageThread.start();
-//                ansMsg = messageThread.getaMsg();
                 try {
+                    dialogFrame.changeVisible(true);
                     ansMsg = Network.sendFile(file, filename, clientSocket);
                 } catch (IOException e) {
                     e.printStackTrace();
                 } catch (ClassNotFoundException e) {
                     e.printStackTrace();
                 }
-//                showBar = false;
-                pBar.setShowBar(false);
+
                 if (ansMsg != null) {
                     if (ansMsg.isYes()) {
                         if (ansMsg.getFiles() != null) {
@@ -371,7 +354,9 @@ class ClientGUI extends JFrame implements ActionListener {
                 } else {
                     textArea.append(Consts.formatForDate.format(new Date()) + ". Something wrong...\n");
                 }
+                dialogFrame.changeVisible(false);
             }
+
         } else if (type.equals(FileActionEnum.GET)) {
             JFileChooser fileChooser = new JFileChooser();
             fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
@@ -383,6 +368,7 @@ class ClientGUI extends JFrame implements ActionListener {
                         textArea.append(Consts.formatForDate.format(new Date()) + ". File not selected!\n");
                         return;
                     }
+                    dialogFrame.changeVisible(true);
                     String pathToFile = selectedPath.toString();
                     FileMessage fm = new FileMessage(pathToFile, FileActionEnum.GET, null, null);
                     ObjectOutputStream oos = new ObjectOutputStream(clientSocket.getOutputStream());
@@ -403,16 +389,17 @@ class ClientGUI extends JFrame implements ActionListener {
                                 Network.sendAnswerMessage(clientSocket, null, false, null);
                                 textArea.append(Consts.formatForDate.format(new Date()) + ". File: " + pathToFile + " not saved on local disk.\n");
                             }
-
                         }
                     } catch (ClassNotFoundException e) {
                         e.printStackTrace();
                     }
+                    dialogFrame.changeVisible(false);
 
                 } catch (IOException e1) {
                     e1.printStackTrace();
                 }
             }
+
         } else if (type.equals(FileActionEnum.GET_ID)) {
             try {
                 if (tecNode == null || !tecNode.isLeaf()) {
@@ -432,7 +419,7 @@ class ClientGUI extends JFrame implements ActionListener {
                         AnswerMessage ansMsg = (AnswerMessage) obj;
                         String selectFileID = ansMsg.getMsg();
                         textArea.append(Consts.formatForDate.format(new Date()) + ". File ID: " + selectFileID + "\n");
-                        JOptionPane.showMessageDialog(null, "File ID: " + selectFileID + "\n", "", JOptionPane.WARNING_MESSAGE);
+                        JOptionPane.showMessageDialog(null, "File ID: " + selectFileID + "\n", "", JOptionPane.INFORMATION_MESSAGE);
                     }
                 } catch (ClassNotFoundException e) {
                     e.printStackTrace();
@@ -443,7 +430,6 @@ class ClientGUI extends JFrame implements ActionListener {
             }
 
         } else if (type.equals(FileActionEnum.RENAME)) {
-//        } else if (newName != null && tecPath == null) {
             String filename = selectedPath.toString();
             if (selectedPath.length() == 0 || tecNode == null || !tecNode.isLeaf()) {// && WorkWithFiles.verifyPath(selectedPath.toString())) {
                 textArea.append(Consts.formatForDate.format(new Date()) + ". File not selected!" + "\n");
@@ -474,11 +460,11 @@ class ClientGUI extends JFrame implements ActionListener {
             }
 
         } else if (type.equals(FileActionEnum.TRANSFER)) {
-//        } else if (newName != null && tecPath != null) {
             String filename = tecPath;
             FileMessage fm = new FileMessage(filename, FileActionEnum.TRANSFER, newName, tecPath);
             ObjectOutputStream oos = null;
             try {
+                dialogFrame.changeVisible(true);
                 oos = new ObjectOutputStream(clientSocket.getOutputStream());
                 oos.writeObject(fm);
                 oos.flush();
@@ -499,19 +485,20 @@ class ClientGUI extends JFrame implements ActionListener {
             } catch (ClassNotFoundException e) {
                 e.printStackTrace();
             }
+            dialogFrame.changeVisible(false);
 
         } else if (type.equals(FileActionEnum.DELETE)) {
             String pathToFile = selectedPath.toString();
             FileMessage fm = new FileMessage(pathToFile, FileActionEnum.DELETE, null, null);
             ObjectOutputStream oos = null;
             try {
+                dialogFrame.changeVisible(true);
                 oos = new ObjectOutputStream(clientSocket.getOutputStream());
                 oos.writeObject(fm);
                 oos.flush();
                 ObjectInputStream ois = new ObjectInputStream(clientSocket.getInputStream());
                 AnswerMessage aMsg = (AnswerMessage) ois.readObject();
                 textArea.append(aMsg.getMsg() + "\n");
-//                textArea.append(formatForDate.format(new Date()) + ". " + aMsg.getMsg() + "\n");
                 if (aMsg.isYes()) {
                     if (aMsg.getFiles() != null) {
                         userSize = convertToMb(aMsg.getSize());
@@ -523,14 +510,16 @@ class ClientGUI extends JFrame implements ActionListener {
             } catch (ClassNotFoundException e) {
                 e.printStackTrace();
             }
-        } else if (type.equals(FileActionEnum.REFRESH)) {
+            dialogFrame.changeVisible(false);
 
+        } else if (type.equals(FileActionEnum.REFRESH)) {
             if (selectedPath.length() != 0 && tecNode.getAllowsChildren()) {
                 return;
             }
             FileMessage fm = new FileMessage(tecPath, FileActionEnum.REFRESH, null, null);
             ObjectOutputStream oos = null;
             try {
+                dialogFrame.changeVisible(true);
                 oos = new ObjectOutputStream(clientSocket.getOutputStream());
                 oos.writeObject(fm);
                 oos.flush();
@@ -540,7 +529,7 @@ class ClientGUI extends JFrame implements ActionListener {
                     textArea.append(aMsg.getMsg() + "\n");
                     file = new File(aMsg.getMsg());
                     String filename = login + "\\" + file.getName();
-                    if (selectedPath.length() != 0 && tecNode.getAllowsChildren()) {// && WorkWithFiles.verifyPath(selectedPath.toString())) {
+                    if (selectedPath.length() != 0 && tecNode.getAllowsChildren()) {
                         filename = selectedPath.toString() + "\\" + file.getName();
                     } else if (tecNode != null && !tecNode.getAllowsChildren()) {
                         int index = selectedPath.lastIndexOf(tecNode.toString());
@@ -572,31 +561,29 @@ class ClientGUI extends JFrame implements ActionListener {
             } catch (ClassNotFoundException e) {
                 e.printStackTrace();
             }
+            dialogFrame.changeVisible(false);
         }
-
     }
 
     private String getPathToFolder(boolean create, boolean delete) {
         String folderName = null;
         if (create) {
-//            folderName = login.getText() + "\\";//  + newFolderName;
-            folderName = login + "\\";//  + newFolderName;
-            if (selectedPath.length() != 0 && tecNode.getAllowsChildren()) {// && WorkWithFiles.verifyPath(selectedPath.toString())) {
-                folderName = selectedPath.toString() + "\\";// + newFolderName;
+            folderName = login + "\\";
+            if (selectedPath.length() != 0 && tecNode.getAllowsChildren()) {
+                folderName = selectedPath.toString() + "\\";
             } else if (tecNode != null && !tecNode.getAllowsChildren()) {
                 int index = selectedPath.lastIndexOf(tecNode.toString());
                 StringBuilder newSelectedPath = selectedPath.delete(index, selectedPath.length());
-                folderName = newSelectedPath.toString() + "\\";// + newFolderName;
+                folderName = newSelectedPath.toString() + "\\";
             }
         } else if (delete) {
-//            folderName = login.getText();//  + newFolderName;
-            folderName = login;//  + newFolderName;
-            if (selectedPath.length() != 0 && tecNode.getAllowsChildren()) {// && WorkWithFiles.verifyPath(selectedPath.toString())) {
-                folderName = selectedPath.toString();// + newFolderName;
+            folderName = login;
+            if (selectedPath.length() != 0 && tecNode.getAllowsChildren()) {
+                folderName = selectedPath.toString();
             } else if (tecNode != null && !tecNode.getAllowsChildren()) {
                 int index = selectedPath.lastIndexOf(tecNode.toString());
                 StringBuilder newSelectedPath = selectedPath.delete(index, selectedPath.length());
-                folderName = newSelectedPath.toString();// + newFolderName;
+                folderName = newSelectedPath.toString();
             }
         }
         return folderName;
@@ -612,7 +599,6 @@ class ClientGUI extends JFrame implements ActionListener {
 
     private void refreshTree(File[] userFiles) {
         folderList.clear();
-//        drawTree(login.getText(), userFiles);
         drawTree(login, userFiles);
         sizeBar.setValue(userSize);
 
@@ -666,7 +652,6 @@ class ClientGUI extends JFrame implements ActionListener {
                 itemNode.add(new DefaultMutableTreeNode(inItem.getName(), false));
             }
         }
-
     }
 
     class SelectionListener implements TreeSelectionListener {

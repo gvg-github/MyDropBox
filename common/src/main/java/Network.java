@@ -61,7 +61,6 @@ public class Network {
             e.printStackTrace();
         }
         return ansMsg;
-
     }
 
     private static AnswerMessage SendMessage(Socket clientSocket, FileMessage fdm) {
@@ -82,7 +81,6 @@ public class Network {
             e.printStackTrace();
         }
         return ansMsg;
-
     }
 
     public static AnswerMessage sendFile(File file, String filename, Socket socket) throws IOException, ClassNotFoundException {
@@ -113,13 +111,13 @@ public class Network {
             for (int i = 0; i <= count; i++) {
 
                 byte[] x = {};
-                int fragmentLength = 0;
+//                int fragmentLength = 0;
                 if (i == count) {
                     x = new byte[lastSize];
-                    fragmentLength = fis.available();
+//                    fragmentLength = fis.available();
                 } else {
                     x = new byte[Consts.FILE_SIZE];
-                    fragmentLength = Consts.FILE_SIZE;
+//                    fragmentLength = Consts.FILE_SIZE;
                 }
                 readByte = fis.read(x);
                 aList.add(x);
@@ -154,16 +152,13 @@ public class Network {
 
         boolean gotIt = false;
         File file = new File(pathToFile);
-//        String fileName = trFm.getName();
         long size = trFm.getSize();
         ArrayList<byte[]> aList = new ArrayList<>();
         aList.add(trFm.getData());
         while (!trFm.isEndOfFile()) {
-//                                sendAnswerMessage(true, null);
             ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
             trFm = (TransferFileMessage) ois.readObject();
             aList.add(trFm.getData());
-
         }
 
         if (aList.size() > 0) {

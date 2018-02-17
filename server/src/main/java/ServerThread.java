@@ -67,27 +67,25 @@ public class ServerThread implements Runnable {
                 }
 
             } catch (ClassNotFoundException e) {
-//                sArea.append(Consts.formatForDate.format(new Date()) + " User: " + user + " disconnected. ClassNotFoundException." + "\n");
+//                e.printStackTrace();
                 break;
 
             } catch (IOException e) {
-//                sArea.append(Consts.formatForDate.format(new Date()) + " User: " + user + " disconnected. IOException." + "\n");
+//                e.printStackTrace();
                 break;
 
             } catch (Exception e) {
-                e.printStackTrace();
+//                e.printStackTrace();
+                break;
             }
         }
         mtSever.getThreadList().remove(this);
-        sArea.append(Consts.formatForDate.format(new Date()) + "User: " + user + " disconnected." + "\n");
+//        sArea.append(Consts.formatForDate.format(new Date()) + " User: " + user + " disconnected." + "\n");
     }
-
-
 
     public String getUser() {
         return user;
     }
-
 
     public PasswordAuthentication getPa() {
         return pa;
@@ -97,12 +95,6 @@ public class ServerThread implements Runnable {
         StringBuilder sb = new StringBuilder(localName);
         if (sb.indexOf("\\") != -1) {
             sb.replace(0, sb.indexOf("\\"), bd.getUserUID());
-//            int index = sb.indexOf("\\");
-//            if (sb.substring(index + 1, index + 2).equals("\\")){
-//                sb.replace(0, sb.indexOf("\\"), bd.getUserUID());
-//            }else{
-//                sb.replace(0, sb.indexOf("\\"), "\\" + bd.getUserUID());
-//            }
         } else {
             sb.replace(0, sb.length(), bd.getUserUID());
         }
@@ -163,7 +155,6 @@ public class ServerThread implements Runnable {
 
         } else {
             File file = WorkWithFiles.getFileOnServer(pathToFile);
-//            FileMessage outfm = new FileMessage(file.getName(), Files.readAllBytes(Paths.get(file.getAbsolutePath())), false, false, null, null);
             FileMessage outfm = new FileMessage(file.getName(), FileActionEnum.GET, null, null);
             ObjectOutputStream oosSend = new ObjectOutputStream(client.getOutputStream());
             oosSend.writeObject(outfm);
@@ -194,13 +185,13 @@ public class ServerThread implements Runnable {
         } else if (fm.getAction().equals(FileActionEnum.REFRESH)) {
 
             String localPath = bd.getFileLocalPath(this, pathToFile);
-            if(WorkWithFiles.deleteFileOnServer(pathToFile)){
+            if (WorkWithFiles.deleteFileOnServer(pathToFile)) {
                 if (bd.deleteFile(this, pathToFile)) {
                     Network.sendAnswerMessage(client, null, true, localPath);
                 } else {
                     Network.sendAnswerMessage(client, null, false, Consts.formatForDate.format(new Date()) + ". Error deleting file data " + fm.getName() + " from BD...");
                 }
-            }else{
+            } else {
                 Network.sendAnswerMessage(client, null, false, Consts.formatForDate.format(new Date()) + ". Error when delete file " + pathToFile + "...");
             }
 
@@ -215,7 +206,6 @@ public class ServerThread implements Runnable {
                 Network.sendAnswerMessage(client, null, false, "Write about file: " + pathToFile + " not found!");
             }
 
-//        } else if (fm.getNewName() != null && fm.getTecPath() == null) {
         } else if (fm.getAction().equals(FileActionEnum.RENAME)) {
             File tecFile = WorkWithFiles.getFileOnServer(pathToFile);
             if (tecFile != null) {
@@ -239,7 +229,6 @@ public class ServerThread implements Runnable {
             } else {
                 Network.sendAnswerMessage(client, bd.getUserUID(), false, Consts.formatForDate.format(new Date()) + ". File " + fm.getName() + " not found!");
             }
-//        } else if (fm.getNewName() != null && fm.getTecPath() != null) {
         } else if (fm.getAction().equals(FileActionEnum.TRANSFER)) {
             File tecFile = WorkWithFiles.getFileOnServer(pathToFile);
             String newServerName = ChangePathFromLocalToServer(fm.getNewName());
@@ -252,7 +241,6 @@ public class ServerThread implements Runnable {
                     } else {
                         Network.sendAnswerMessage(client, bd.getUserUID(), false, Consts.formatForDate.format(new Date()) + ". Error when rewrite file data " + fm.getName() + " in BD...");
                     }
-//                    Network.sendAnswerMessage(client, bd.getUserUID(), true, Consts.formatForDate.format(new Date()) + ". File " + fm.getName() + "  transferred!");
                 } else {
                     Network.sendAnswerMessage(client, bd.getUserUID(), false, Consts.formatForDate.format(new Date()) + ". Error when transfer file " + fm.getName() + "...");
                 }
@@ -296,7 +284,7 @@ public class ServerThread implements Runnable {
 
             for (int i = 0; i < threadList.size(); i++) {
                 if (threadList.get(i).equals(this)) continue;
-                if (threadList.get(i).getUser().equals(user)){
+                if (threadList.get(i).getUser().equals(user)) {
                     Network.sendAnswerMessage(client, null, false, Consts.formatForDate.format(new Date()) + ". User " + user + " already connected! Connection refused.");
                 }
                 return;
@@ -315,10 +303,10 @@ public class ServerThread implements Runnable {
         } else {
             if (bd.getUser(this, userInfo[0])) {
                 if (bd.verifyUser(this, userInfo[0], userInfo[1])) {
-                    if(bd.changePassword(this, userInfo[0], userInfo[2])){
+                    if (bd.changePassword(this, userInfo[0], userInfo[2])) {
                         sArea.append(Consts.formatForDate.format(new Date()) + ". User " + user + " connected. \n");
                         Network.sendAnswerMessage(client, bd.getUserUID(), true, Consts.formatForDate.format(new Date()) + ". User " + user + " connected.");
-                    }else{
+                    } else {
                         Network.sendAnswerMessage(client, null, false, Consts.formatForDate.format(new Date()) + ". Error change password! Connection refused.");
                     }
                 } else {
@@ -333,10 +321,8 @@ public class ServerThread implements Runnable {
     private void handleFolderMessage(FolderMessage fdm) {
 
         String PathOnServer = ChangePathFromLocalToServer(fdm.getName());
-//        String pathToDir = WorkWithFiles.DIR_PATH + fdm.getName();
         String pathToDir = WorkWithFiles.DIR_PATH + PathOnServer;
         if (fdm.isCreate()) {
-//            if (WorkWithFiles.makeDir(fdm.getName() + "\\" + fdm.getNewName())) {
             if (WorkWithFiles.makeDir(PathOnServer + "\\" + fdm.getNewName())) {
                 Network.sendAnswerMessage(client, bd.getUserUID(), true, Consts.formatForDate.format(new Date()) + ". Folder " + fdm.getNewName() + "  created!");
             } else {
