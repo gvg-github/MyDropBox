@@ -52,35 +52,9 @@ class ClientGUI extends JFrame {
         this();
         this.clientSocket = clientSocket;
         this.login = login;
-//        this.logIn = true;
         this.userSize = convertToMb(userSize);
         refreshTree(userFiles);
     }
-
-//    private void setDialog() {
-//
-//        progressLabel.setSize(150, 20);
-//        dialog.setSize(150, 20);
-//
-//        Toolkit kit = getToolkit();
-//        GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
-//        GraphicsDevice[] gs = ge.getScreenDevices();
-//        Insets in = kit.getScreenInsets(gs[0].getDefaultConfiguration());
-//        Dimension d = kit.getScreenSize();
-//        int max_width = (d.width - in.left - in.right);
-//        int max_height = (d.height - in.top - in.bottom);
-////        progressLabel.setLocation((int) (max_width - getWidth()) / 8, (int) (max_height - getHeight()) / 2);
-//        dialog.setLocation((int) (max_width - dialog.getWidth()) / 3, (int) (max_height - dialog.getHeight()) / 2);
-//
-//        dialog.setUndecorated(true);
-//        dialog.getContentPane().add(progressLabel);
-////        dialog.setVisible(true);
-////        setVisible(true);
-//        dialog.setVisible(false);
-//        progressLabel.setVisible(false);
-//
-//
-//    }
 
     public ClientGUI() {
 

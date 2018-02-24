@@ -14,13 +14,6 @@ public class Network {
         return SendMessage(clientSocket, fdm);
     }
 
-//    public static AnswerMessage sendFileMessage(Socket clientSocket, String folderName, FileActionEnum type, String newName, String tecPath) {
-//
-//        FileMessage fm = new FileMessage(folderName, type, newName, tecPath);
-//        return SendMessage(clientSocket, fm);
-//
-//    }
-
     public static void sendAnswerMessage(Socket clientSocket, String user, boolean status, String msg) {
         File[] userFiles = null;
         int userSize = 0;
@@ -64,26 +57,6 @@ public class Network {
         }
         return ansMsg;
     }
-
-//    private static AnswerMessage SendMessage(Socket clientSocket, FileMessage fdm) {
-//        AnswerMessage ansMsg = null;
-//        ObjectOutputStream oos = null;
-//        try {
-//            oos = new ObjectOutputStream(clientSocket.getOutputStream());
-//            oos.writeObject(fdm);
-//            oos.flush();
-//            ObjectInputStream ois = new ObjectInputStream(clientSocket.getInputStream());
-//            Object obj = ois.readObject();
-//            if (obj instanceof AnswerMessage) {
-//                ansMsg = (AnswerMessage) obj;
-//            }
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        } catch (ClassNotFoundException e) {
-//            e.printStackTrace();
-//        }
-//        return ansMsg;
-//    }
 
     public static AnswerMessage sendFile(File file, String filename, Socket socket) throws IOException, ClassNotFoundException, InvocationTargetException, InterruptedException {
         AnswerMessage ansMsg = null;

@@ -149,15 +149,6 @@ public class ServerThread implements Runnable {
             } else {
                 Network.sendAnswerMessage(client, bd.getUserUID(), false, Consts.formatForDate.format(new Date()) + ". Error when write file " + fileName + "...");
             }
-
-//        } else if (!trFm.isTransfer()) {
-//
-//        } else {
-//            File file = WorkWithFiles.getFileOnServer(pathToFile);
-//            FileMessage outfm = new FileMessage(file.getName(), FileActionEnum.GET, null, null);
-//            ObjectOutputStream oosSend = new ObjectOutputStream(client.getOutputStream());
-//            oosSend.writeObject(outfm);
-//            oosSend.flush();
         }
     }
 
