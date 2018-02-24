@@ -6,6 +6,7 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.*;
+import java.lang.reflect.InvocationTargetException;
 import java.net.Socket;
 
 import java.util.ArrayList;
@@ -14,7 +15,7 @@ import java.util.Date;
 import static java.lang.Thread.sleep;
 
 
-class ClientGUI extends JFrame implements ActionListener {
+class ClientGUI extends JFrame {
 
     private JButton sendFileButton;
     private JButton getIdButton;
@@ -28,9 +29,6 @@ class ClientGUI extends JFrame implements ActionListener {
     private JButton deleteDirButton;
     private JPanel buttonsPanel;
 
-    //Должен иметься функционал по отправке файлов на сервер, скачиванию, удалению, обновлению, переименование,
-    // перемещение файлов в рамках хранилища. Общение клиента с сервером организуется через команды.
-
     private File file;
     private JTextArea textArea;
     private JPanel centerPanel;
@@ -38,27 +36,51 @@ class ClientGUI extends JFrame implements ActionListener {
     private JTree tree1;
 
     private StringBuilder selectedPath;
-    DefaultMutableTreeNode tecNode;
-    ArrayList<String> folderList = new ArrayList<>();
+    private DefaultMutableTreeNode tecNode;
+    private ArrayList<String> folderList = new ArrayList<>();
 
     private Socket clientSocket;
-    private boolean LogIn;
     private String login;
     private int userSize;
     private JProgressBar sizeBar;
     private TimerLabel timerLabel;
 
-    private ProgressFrame dialogFrame;
+    private MyProgressBar_Simple pBar;
 
-    public ClientGUI(ProgressFrame pgFrame, Socket clientSocket, File[] userFiles, int userSize, String login) {
+    public ClientGUI(Socket clientSocket, File[] userFiles, int userSize, String login) {
+
         this();
         this.clientSocket = clientSocket;
         this.login = login;
-        this.LogIn = true;
+//        this.logIn = true;
         this.userSize = convertToMb(userSize);
         refreshTree(userFiles);
-        dialogFrame = pgFrame;
     }
+
+//    private void setDialog() {
+//
+//        progressLabel.setSize(150, 20);
+//        dialog.setSize(150, 20);
+//
+//        Toolkit kit = getToolkit();
+//        GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
+//        GraphicsDevice[] gs = ge.getScreenDevices();
+//        Insets in = kit.getScreenInsets(gs[0].getDefaultConfiguration());
+//        Dimension d = kit.getScreenSize();
+//        int max_width = (d.width - in.left - in.right);
+//        int max_height = (d.height - in.top - in.bottom);
+////        progressLabel.setLocation((int) (max_width - getWidth()) / 8, (int) (max_height - getHeight()) / 2);
+//        dialog.setLocation((int) (max_width - dialog.getWidth()) / 3, (int) (max_height - dialog.getHeight()) / 2);
+//
+//        dialog.setUndecorated(true);
+//        dialog.getContentPane().add(progressLabel);
+////        dialog.setVisible(true);
+////        setVisible(true);
+//        dialog.setVisible(false);
+//        progressLabel.setVisible(false);
+//
+//
+//    }
 
     public ClientGUI() {
 
@@ -68,10 +90,12 @@ class ClientGUI extends JFrame implements ActionListener {
         setTitle("Client window");
         setSize(600, 600);
         setMinimumSize(new Dimension(300, 300));
-        setLocation(500, 100);
+
+        int[] coords = ClientStartFrame.getStartCoords(this);
+        setLocation((int) (coords[0] - getWidth()) / 2, (int) (coords[1] - getHeight()) / 2);
+
         setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         addWindowListener(new ClientGUI_WindowAdapter(this));
-
 
         timerLabel = new TimerLabel(this);
         timerLabel.setFont(new Font(timerLabel.getFont().getFontName(), timerLabel.getFont().getStyle(), 25));
@@ -82,29 +106,52 @@ class ClientGUI extends JFrame implements ActionListener {
         loginPanel.add(textTimer);
         loginPanel.add(timerLabel);
 
+        KeyboardFocusManager manager = KeyboardFocusManager.getCurrentKeyboardFocusManager();
+        manager.addKeyEventDispatcher(new GUI_Listener(this));
         //Правая панель с кнопками для работы с файлами и папками
         getIdButton = new JButton("Get file ID");
-        getIdButton.addActionListener(this);
+        getIdButton.setToolTipText("Hot key \"I\"");
+        getIdButton.addActionListener(new GUI_Listener(this));
+
         sendFileButton = new JButton("Send file to storage");
-        sendFileButton.addActionListener(this);
+        sendFileButton.setToolTipText("Hot key \"S\"");
+        sendFileButton.addActionListener(new GUI_Listener(this));
+
         getFileButton = new JButton("Get selected file");
-        getFileButton.addActionListener(this);
+        getFileButton.setToolTipText("Hot key \"G\"");
+        getFileButton.addActionListener(new GUI_Listener(this));
+
         deleteFileButton = new JButton("Delete selected file");
-        deleteFileButton.addActionListener(this);
+        deleteFileButton.setToolTipText("Hot key \"Del\"");
+        deleteFileButton.addActionListener(new GUI_Listener(this));
+
         refreshFileButton = new JButton("Refresh selected file");
-        refreshFileButton.addActionListener(this);
+        refreshFileButton.setToolTipText("Hot key \"Alt\" + \"R\"");
+        refreshFileButton.addActionListener(new GUI_Listener(this));
+
         renameFileButton = new JButton("Rename selected file");
-        renameFileButton.addActionListener(this);
+        renameFileButton.setToolTipText("Hot key \"R\"");
+        renameFileButton.addActionListener(new GUI_Listener(this));
+
         transferFileButton = new JButton("Transfer selected file");
-        transferFileButton.addActionListener(this);
+        transferFileButton.setToolTipText("Hot key \"T\"");
+        transferFileButton.addActionListener(new GUI_Listener(this));
+
         createDirButton = new JButton("Create folder");
-        createDirButton.addActionListener(this);
+        createDirButton.setToolTipText("Hot key \"Ctrl\" + \"C\"");
+        createDirButton.addActionListener(new GUI_Listener(this));
+
         renameDirButton = new JButton("Rename selected folder");
-        renameDirButton.addActionListener(this);
+        renameDirButton.setToolTipText("Hot key \"Ctrl\" + \"R\"");
+        renameDirButton.addActionListener(new GUI_Listener(this));
+
         deleteDirButton = new JButton("Delete selected folder");
-        deleteDirButton.addActionListener(this);
+        deleteDirButton.setToolTipText("Hot key \"Ctrl\" + \"Del\"");
+        deleteDirButton.addActionListener(new GUI_Listener(this));
 
         buttonsPanel = new JPanel(new GridLayout(13, 0, 5, 5));
+        buttonsPanel.setMinimumSize(buttonsPanel.getSize());
+        buttonsPanel.setMaximumSize(buttonsPanel.getSize());
         JLabel fileActions = new JLabel("Actions with files:");
         fileActions.setBorder(BorderFactory.createBevelBorder(0));
         buttonsPanel.add(fileActions);
@@ -132,8 +179,8 @@ class ClientGUI extends JFrame implements ActionListener {
 
         contents = new JPanel(new BorderLayout());
         sizeBar = new JProgressBar();
-        sizeBar.setName("Size used:");
         sizeBar.setStringPainted(true);
+        sizeBar.setString("Used: " + userSize + " МВ from: " + Consts.USER_SIZE + " MB.");
         sizeBar.setMinimum(0);
         sizeBar.setMaximum(Consts.USER_SIZE);
         sizeBar.setValue(userSize);
@@ -144,6 +191,9 @@ class ClientGUI extends JFrame implements ActionListener {
         contents.add(new JScrollPane(tree1), BorderLayout.CENTER);
         contents.add(sizeBar, BorderLayout.NORTH);
         contents.setBorder(BorderFactory.createBevelBorder(1));
+
+        pBar = new MyProgressBar_Simple();
+        pBar.showBar();
 
         //Вывод на фрейм
         add(loginPanel, BorderLayout.NORTH);
@@ -180,98 +230,11 @@ class ClientGUI extends JFrame implements ActionListener {
         return clientSocket;
     }
 
-    private void restartTimer() {
+    void restartTimer() {
         timerLabel.restartTimer();
     }
 
-    @Override
-    public void actionPerformed(ActionEvent e) {
-
-        restartTimer();
-        if (clientSocket != null && !clientSocket.isClosed()) {
-            if (LogIn) {
-                if (e.getSource() == getFileButton) {
-                    if (selectedPath.length() == 0 || tecNode == null || !tecNode.isLeaf()) {
-                        JOptionPane.showMessageDialog(null, "File not selected!\n", "", JOptionPane.WARNING_MESSAGE);
-                        return;
-                    }
-                    sendFileMessage(FileActionEnum.GET, null, null);
-
-                } else if (e.getSource() == getIdButton) {
-                    if (selectedPath.length() == 0 || tecNode == null || !tecNode.isLeaf()) {
-                        JOptionPane.showMessageDialog(null, "File not selected!\n", "", JOptionPane.WARNING_MESSAGE);
-                        return;
-                    }
-                    sendFileMessage(FileActionEnum.GET_ID, null, null);
-
-                } else if (e.getSource() == deleteFileButton) {
-                    if (selectedPath.length() == 0 || tecNode == null || !tecNode.isLeaf()) {
-                        JOptionPane.showMessageDialog(null, "File not selected!\n", "", JOptionPane.WARNING_MESSAGE);
-                        return;
-                    }
-                    int res = JOptionPane.showConfirmDialog(this, "Really delete this file?");
-                    if (res == JOptionPane.NO_OPTION) return;
-                    ;
-                    sendFileMessage(FileActionEnum.DELETE, null, null);
-
-                } else if (e.getSource() == renameFileButton) {
-                    if (selectedPath.length() == 0 || tecNode == null || !tecNode.isLeaf()) {
-                        JOptionPane.showMessageDialog(null, "File not selected!\n", "", JOptionPane.WARNING_MESSAGE);
-                        return;
-                    }
-                    String newFileName = JOptionPane.showInputDialog("Input file name:");
-                    if (newFileName != null) {
-                        sendFileMessage(FileActionEnum.RENAME, newFileName, null);
-                    }
-
-                } else if (e.getSource() == transferFileButton) {
-                    if (selectedPath.length() == 0 || tecNode == null || !tecNode.isLeaf()) {
-                        JOptionPane.showMessageDialog(null, "File not selected!\n", "", JOptionPane.WARNING_MESSAGE);
-                        return;
-                    }
-                    StringBuilder tecFolder = selectedPath;
-                    if (tecNode.isLeaf()) {
-                        tecFolder = getFolder(selectedPath.toString());
-                    }
-                    String tecPath = selectedPath.toString();
-                    Object res = JOptionPane.showInputDialog(this, "Select new folder for file:", "", JOptionPane.QUESTION_MESSAGE, null, (Object[]) folderList.toArray(), folderList.get(0));
-                    if (res == null) {
-                        JOptionPane.showMessageDialog(null, "New folder not selected!\n", "", JOptionPane.WARNING_MESSAGE);
-                        return;
-                    }
-                    String newFolder = (String) res;
-                    String newPath = newFolder;
-                    if (newPath.equals(tecPath) || newFolder.equals(tecFolder.toString())) {
-                        JOptionPane.showMessageDialog(null, "New folder not selected!\n", "", JOptionPane.WARNING_MESSAGE);
-                        return;
-                    }
-                    sendFileMessage(FileActionEnum.TRANSFER, newPath, tecPath);
-
-                } else if (e.getSource() == refreshFileButton) {
-                    if (selectedPath.length() == 0 || tecNode == null || !tecNode.isLeaf()) {
-                        JOptionPane.showMessageDialog(null, "File not selected!\n", "", JOptionPane.WARNING_MESSAGE);
-                        return;
-                    }
-                    String tecPath = selectedPath.toString();
-                    sendFileMessage(FileActionEnum.REFRESH, null, tecPath);
-
-                } else if (e.getSource() == sendFileButton) {
-                    sendFileMessage(FileActionEnum.SEND, null, null);
-
-                } else if (e.getSource() == createDirButton) {
-                    sendFolderMessage(true, false);
-                } else if (e.getSource() == renameDirButton) {
-                    sendFolderMessage(false, false);
-                } else if (e.getSource() == deleteDirButton) {
-                    sendFolderMessage(false, true);
-                }
-            }
-        } else {
-            closeClientFrame("Socket closed!");
-        }
-    }
-
-    private void sendFolderMessage(boolean create, boolean delete) {
+    void sendFolderMessage(boolean create, boolean delete) {
         AnswerMessage ansMsg = null;
         String folderName = null;
         if (create) {
@@ -281,18 +244,10 @@ class ClientGUI extends JFrame implements ActionListener {
                 ansMsg = Network.sendFolderMessage(clientSocket, folderName, true, false, newFolderName);
             }
         } else if (delete) {
-            if (selectedPath.length() == 0 || tecNode == null || !tecNode.getAllowsChildren()) {
-                JOptionPane.showMessageDialog(null, "Folder not selected!\n", "", JOptionPane.WARNING_MESSAGE);
-                return;
-            }
             folderName = getPathToFolder(false, true);
             ansMsg = Network.sendFolderMessage(clientSocket, folderName, false, true, null);
 
         } else {
-            if (selectedPath.length() == 0 || tecNode == null || !tecNode.getAllowsChildren()) {
-                JOptionPane.showMessageDialog(null, "Folder not selected!\n", "", JOptionPane.WARNING_MESSAGE);
-                return;
-            }
             String newFolderName = JOptionPane.showInputDialog("Input new folder name:");
             if (newFolderName != null) {
                 folderName = selectedPath.toString() + "\\";
@@ -301,31 +256,25 @@ class ClientGUI extends JFrame implements ActionListener {
         }
 
         if (ansMsg != null) {
-            if (ansMsg.isYes()) {
-                if (ansMsg.getFiles() != null) {
-                    userSize = convertToMb(ansMsg.getSize());
-                    refreshTree(ansMsg.getFiles());
-                }
-            }
-            textArea.append(ansMsg.getMsg() + "\n");
-
+            handleAnswerMessage(ansMsg);
         }
     }
 
-    private void sendFileMessage(FileActionEnum type, String newName, String tecPath) {
+    void sendFileMessage(FileActionEnum type, String newName, String tecPath) {
 
         if (type.equals(FileActionEnum.SEND)) {
             AnswerMessage ansMsg = null;
             JFileChooser fileChooser = new JFileChooser();
-            int ret = fileChooser.showDialog(null, "Select file");
+            int ret = fileChooser.showDialog(this, "Select file");
             if (ret == JFileChooser.APPROVE_OPTION) {
                 file = fileChooser.getSelectedFile();
                 int freeSpace = Consts.USER_SIZE - userSize;
                 int fileSize = convertToMb((int) file.length());
                 if (fileSize > freeSpace) {
-                    JOptionPane.showMessageDialog(null, "File size: " + fileSize + " MB, free space: " + freeSpace + " MB. Transfer canselled.", "", JOptionPane.WARNING_MESSAGE);
+                    JOptionPane.showMessageDialog(this, "File size: " + fileSize + " MB, free space: " + freeSpace + " MB. Transfer canselled.", "", JOptionPane.WARNING_MESSAGE);
                     return;
                 }
+
                 String filename = login + "\\" + file.getName();
                 if (selectedPath.length() != 0 && tecNode.getAllowsChildren()) {
                     filename = selectedPath.toString() + "\\" + file.getName();
@@ -334,33 +283,32 @@ class ClientGUI extends JFrame implements ActionListener {
                     StringBuilder newSelectedPath = selectedPath.delete(index, selectedPath.length());
                     filename = newSelectedPath.toString() + "\\" + file.getName();
                 }
+
+                pBar.showBar();
                 try {
-                    dialogFrame.changeVisible(true);
                     ansMsg = Network.sendFile(file, filename, clientSocket);
                 } catch (IOException e) {
                     e.printStackTrace();
                 } catch (ClassNotFoundException e) {
                     e.printStackTrace();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                } catch (InvocationTargetException e) {
+                    e.printStackTrace();
                 }
+                pBar.hideBar();
 
                 if (ansMsg != null) {
-                    if (ansMsg.isYes()) {
-                        if (ansMsg.getFiles() != null) {
-                            userSize = convertToMb(ansMsg.getSize());
-                            refreshTree(ansMsg.getFiles());
-                        }
-                    }
-                    textArea.append(Consts.formatForDate.format(new Date()) + ". " + ansMsg.getMsg() + "\n");
+                    handleAnswerMessage(ansMsg);
                 } else {
                     textArea.append(Consts.formatForDate.format(new Date()) + ". Something wrong...\n");
                 }
-                dialogFrame.changeVisible(false);
             }
 
         } else if (type.equals(FileActionEnum.GET)) {
             JFileChooser fileChooser = new JFileChooser();
             fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-            int ret = fileChooser.showDialog(null, "Select file");
+            int ret = fileChooser.showDialog(this, "Select file");
             if (ret == JFileChooser.APPROVE_OPTION) {
                 file = fileChooser.getSelectedFile();
                 try {
@@ -368,16 +316,12 @@ class ClientGUI extends JFrame implements ActionListener {
                         textArea.append(Consts.formatForDate.format(new Date()) + ". File not selected!\n");
                         return;
                     }
-                    dialogFrame.changeVisible(true);
+
+                    pBar.showBar();
                     String pathToFile = selectedPath.toString();
                     FileMessage fm = new FileMessage(pathToFile, FileActionEnum.GET, null, null);
-                    ObjectOutputStream oos = new ObjectOutputStream(clientSocket.getOutputStream());
-                    oos.writeObject(fm);
-                    oos.flush();
-                    ObjectInputStream ois = new ObjectInputStream(clientSocket.getInputStream());
-                    Object obj = null;
                     try {
-                        obj = ois.readObject();
+                        Object obj = messaginWithServer(fm, clientSocket);
                         if (obj instanceof TransferFileMessage) {
                             TransferFileMessage trMsg = (TransferFileMessage) obj;
                             String localPathToFile = file.getAbsolutePath() + "\\" + trMsg.getName();
@@ -393,10 +337,9 @@ class ClientGUI extends JFrame implements ActionListener {
                     } catch (ClassNotFoundException e) {
                         e.printStackTrace();
                     }
-                    dialogFrame.changeVisible(false);
-
-                } catch (IOException e1) {
-                    e1.printStackTrace();
+                    pBar.hideBar();
+                } catch (IOException e) {
+                    e.printStackTrace();
                 }
             }
 
@@ -408,50 +351,35 @@ class ClientGUI extends JFrame implements ActionListener {
                 }
                 String pathToFile = selectedPath.toString();
                 FileMessage fm = new FileMessage(pathToFile, FileActionEnum.GET_ID, null, null);
-                ObjectOutputStream oos = new ObjectOutputStream(clientSocket.getOutputStream());
-                oos.writeObject(fm);
-                oos.flush();
-                ObjectInputStream ois = new ObjectInputStream(clientSocket.getInputStream());
-                Object obj = null;
                 try {
-                    obj = ois.readObject();
+                    Object obj = messaginWithServer(fm, clientSocket);
                     if (obj instanceof AnswerMessage) {
                         AnswerMessage ansMsg = (AnswerMessage) obj;
                         String selectFileID = ansMsg.getMsg();
                         textArea.append(Consts.formatForDate.format(new Date()) + ". File ID: " + selectFileID + "\n");
-                        JOptionPane.showMessageDialog(null, "File ID: " + selectFileID + "\n", "", JOptionPane.INFORMATION_MESSAGE);
+                        JOptionPane.showMessageDialog(this, "File ID: " + selectFileID + "\n", "", JOptionPane.INFORMATION_MESSAGE);
                     }
                 } catch (ClassNotFoundException e) {
                     e.printStackTrace();
                 }
 
-            } catch (IOException e1) {
-                e1.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
             }
 
         } else if (type.equals(FileActionEnum.RENAME)) {
             String filename = selectedPath.toString();
-            if (selectedPath.length() == 0 || tecNode == null || !tecNode.isLeaf()) {// && WorkWithFiles.verifyPath(selectedPath.toString())) {
+            if (selectedPath.length() == 0 || tecNode == null || !tecNode.isLeaf()) {
                 textArea.append(Consts.formatForDate.format(new Date()) + ". File not selected!" + "\n");
                 return;
             }
             FileMessage fm = new FileMessage(filename, FileActionEnum.RENAME, newName, null);
-            ObjectOutputStream oos = null;
             try {
-                oos = new ObjectOutputStream(clientSocket.getOutputStream());
-                oos.writeObject(fm);
-                oos.flush();
-                ObjectInputStream ois = new ObjectInputStream(clientSocket.getInputStream());
-                Object obj = ois.readObject();
+                Object obj = messaginWithServer(fm, clientSocket);
+
                 if (obj instanceof AnswerMessage) {
                     AnswerMessage ansMsg = (AnswerMessage) obj;
-                    if (ansMsg.isYes()) {
-                        if (ansMsg.getFiles() != null) {
-                            userSize = convertToMb(ansMsg.getSize());
-                            refreshTree(ansMsg.getFiles());
-                        }
-                    }
-                    textArea.append(ansMsg.getMsg() + "\n");
+                    handleAnswerMessage(ansMsg);
                 }
             } catch (IOException e) {
                 e.printStackTrace();
@@ -462,69 +390,43 @@ class ClientGUI extends JFrame implements ActionListener {
         } else if (type.equals(FileActionEnum.TRANSFER)) {
             String filename = tecPath;
             FileMessage fm = new FileMessage(filename, FileActionEnum.TRANSFER, newName, tecPath);
-            ObjectOutputStream oos = null;
             try {
-                dialogFrame.changeVisible(true);
-                oos = new ObjectOutputStream(clientSocket.getOutputStream());
-                oos.writeObject(fm);
-                oos.flush();
-                ObjectInputStream ois = new ObjectInputStream(clientSocket.getInputStream());
-                Object obj = ois.readObject();
+                Object obj = messaginWithServer(fm, clientSocket);
+
                 if (obj instanceof AnswerMessage) {
                     AnswerMessage ansMsg = (AnswerMessage) obj;
-                    if (ansMsg.isYes()) {
-                        if (ansMsg.getFiles() != null) {
-                            userSize = convertToMb(ansMsg.getSize());
-                            refreshTree(ansMsg.getFiles());
-                        }
-                    }
-                    textArea.append(ansMsg.getMsg() + "\n");
+                    handleAnswerMessage(ansMsg);
                 }
             } catch (IOException e) {
                 e.printStackTrace();
             } catch (ClassNotFoundException e) {
                 e.printStackTrace();
             }
-            dialogFrame.changeVisible(false);
+            pBar.hideBar();
 
         } else if (type.equals(FileActionEnum.DELETE)) {
             String pathToFile = selectedPath.toString();
             FileMessage fm = new FileMessage(pathToFile, FileActionEnum.DELETE, null, null);
-            ObjectOutputStream oos = null;
             try {
-                dialogFrame.changeVisible(true);
-                oos = new ObjectOutputStream(clientSocket.getOutputStream());
-                oos.writeObject(fm);
-                oos.flush();
-                ObjectInputStream ois = new ObjectInputStream(clientSocket.getInputStream());
-                AnswerMessage aMsg = (AnswerMessage) ois.readObject();
-                textArea.append(aMsg.getMsg() + "\n");
-                if (aMsg.isYes()) {
-                    if (aMsg.getFiles() != null) {
-                        userSize = convertToMb(aMsg.getSize());
-                        refreshTree(aMsg.getFiles());
-                    }
-                }
+                Object obj = messaginWithServer(fm, clientSocket);
+                AnswerMessage aMsg = (AnswerMessage) obj;
+                handleAnswerMessage(aMsg);
+
             } catch (IOException e) {
                 e.printStackTrace();
             } catch (ClassNotFoundException e) {
                 e.printStackTrace();
             }
-            dialogFrame.changeVisible(false);
 
         } else if (type.equals(FileActionEnum.REFRESH)) {
             if (selectedPath.length() != 0 && tecNode.getAllowsChildren()) {
                 return;
             }
+            pBar.showBar();
             FileMessage fm = new FileMessage(tecPath, FileActionEnum.REFRESH, null, null);
-            ObjectOutputStream oos = null;
             try {
-                dialogFrame.changeVisible(true);
-                oos = new ObjectOutputStream(clientSocket.getOutputStream());
-                oos.writeObject(fm);
-                oos.flush();
-                ObjectInputStream ois = new ObjectInputStream(clientSocket.getInputStream());
-                AnswerMessage aMsg = (AnswerMessage) ois.readObject();
+                Object obj = messaginWithServer(fm, clientSocket);
+                AnswerMessage aMsg = (AnswerMessage) obj;
                 if (aMsg.isYes()) {
                     textArea.append(aMsg.getMsg() + "\n");
                     file = new File(aMsg.getMsg());
@@ -543,13 +445,7 @@ class ClientGUI extends JFrame implements ActionListener {
                     if (file.exists() && file.isFile()) {
                         AnswerMessage ansMsg = Network.sendFile(file, filename, clientSocket);
                         if (ansMsg != null) {
-                            if (ansMsg.isYes()) {
-                                if (ansMsg.getFiles() != null) {
-                                    userSize = convertToMb(ansMsg.getSize());
-                                    refreshTree(ansMsg.getFiles());
-                                }
-                            }
-                            textArea.append(Consts.formatForDate.format(new Date()) + ". " + ansMsg.getMsg() + "\n");
+                            handleAnswerMessage(ansMsg);
                         } else {
                             textArea.append(Consts.formatForDate.format(new Date()) + ". Something wrong...\n");
                         }
@@ -560,9 +456,31 @@ class ClientGUI extends JFrame implements ActionListener {
                 e.printStackTrace();
             } catch (ClassNotFoundException e) {
                 e.printStackTrace();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            } catch (InvocationTargetException e) {
+                e.printStackTrace();
             }
-            dialogFrame.changeVisible(false);
+            pBar.hideBar();
         }
+    }
+
+    private Object messaginWithServer(FileMessage fm, Socket clientSocket) throws IOException, ClassNotFoundException {
+        ObjectOutputStream oos = new ObjectOutputStream(clientSocket.getOutputStream());
+        oos.writeObject(fm);
+        oos.flush();
+        ObjectInputStream ois = new ObjectInputStream(clientSocket.getInputStream());
+        return ois.readObject();
+    }
+
+    private void handleAnswerMessage(AnswerMessage ansMsg) {
+        if (ansMsg.isYes()) {
+            if (ansMsg.getFiles() != null) {
+                userSize = convertToMb(ansMsg.getSize());
+                refreshTree(ansMsg.getFiles());
+            }
+        }
+        textArea.append(Consts.formatForDate.format(new Date()) + ". " + ansMsg.getMsg() + "\n");
     }
 
     private String getPathToFolder(boolean create, boolean delete) {
@@ -589,7 +507,7 @@ class ClientGUI extends JFrame implements ActionListener {
         return folderName;
     }
 
-    private StringBuilder getFolder(String tecName) {
+    StringBuilder getFolder(String tecName) {
         StringBuilder nameBuilder = new StringBuilder(selectedPath);
 
         int index1 = tecName.lastIndexOf("\\");
@@ -601,12 +519,11 @@ class ClientGUI extends JFrame implements ActionListener {
         folderList.clear();
         drawTree(login, userFiles);
         sizeBar.setValue(userSize);
-
+        sizeBar.setString("Used: " + userSize + " МВ from: " + Consts.USER_SIZE + " MB.");
     }
 
     private void drawTree(String root, File[] files) {
         TreeModel model = createTreeModel(root, files);
-
         tree1.setModel(model);
         tree1.addTreeSelectionListener(new SelectionListener());
         tree1.getSelectionModel().setSelectionMode(TreeSelectionModel.SINGLE_TREE_SELECTION);
@@ -680,8 +597,59 @@ class ClientGUI extends JFrame implements ActionListener {
         }
     }
 
+    public StringBuilder getSelectedPath() {
+        return selectedPath;
+    }
+
+    public DefaultMutableTreeNode getTecNode() {
+        return tecNode;
+    }
+
     public String getLogin() {
         return login;
     }
 
+    public JButton getSendFileButton() {
+        return sendFileButton;
+    }
+
+    public JButton getGetIdButton() {
+        return getIdButton;
+    }
+
+    public JButton getGetFileButton() {
+        return getFileButton;
+    }
+
+    public JButton getDeleteFileButton() {
+        return deleteFileButton;
+    }
+
+    public JButton getRefreshFileButton() {
+        return refreshFileButton;
+    }
+
+    public JButton getRenameFileButton() {
+        return renameFileButton;
+    }
+
+    public JButton getTransferFileButton() {
+        return transferFileButton;
+    }
+
+    public JButton getCreateDirButton() {
+        return createDirButton;
+    }
+
+    public JButton getRenameDirButton() {
+        return renameDirButton;
+    }
+
+    public JButton getDeleteDirButton() {
+        return deleteDirButton;
+    }
+
+    public ArrayList<String> getFolderList() {
+        return folderList;
+    }
 }

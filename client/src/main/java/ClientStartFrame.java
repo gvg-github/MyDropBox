@@ -30,14 +30,15 @@ public class ClientStartFrame extends JFrame {
     private JTextField idField;
     private JCheckBox autoConnect;
 
-    private JTextField login = new JTextField(10);
-    private JPasswordField password = new JPasswordField(10);
+    private JTextField login = new JTextField(12);
+    private JPasswordField password = new JPasswordField(12);
     private String newPass;
 
     private JTextArea textArea;
     boolean breakConnect = false;
     private int userSize;
-    private ProgressFrame dialogFrame;
+    private boolean connected;
+
 
     public ClientStartFrame() {
 
@@ -81,8 +82,6 @@ public class ClientStartFrame extends JFrame {
             }
         });
 
-        port.setFont(otherFont);
-        ipAdress.setFont(otherFont);
         readWriteSystemFile(true);
 
         textArea = new JTextArea(10, 20);
@@ -92,45 +91,41 @@ public class ClientStartFrame extends JFrame {
         JPanel fieldsPanel1 = new JPanel(new FlowLayout(FlowLayout.LEFT));
         JLabel ipText = new JLabel("Server IP:");
         JLabel portText = new JLabel("port:");
-        autoConnect = new JCheckBox();
-        autoConnect.setToolTipText("For break press \"Ctrl\" + \"Q\"");
 
-        ipText.setFont(otherFont);
-        portText.setFont(otherFont);
         fieldsPanel1.add(ipText);
         fieldsPanel1.add(ipAdress);
         fieldsPanel1.add(portText);
         fieldsPanel1.add(port);
-
-        fieldsPanel1.add(autoConnect);
-        JTextField addIdTextFiled = new JTextField("Auto try connect");
-        addIdTextFiled.setEditable(false);
-        fieldsPanel1.add(addIdTextFiled);
-
-        JPanel loginTextPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         JLabel loginText = new JLabel("Login:");
-        loginText.setFont(otherFont);
-        loginTextPanel.add(loginText);
-        login.setFont(otherFont);
-        loginTextPanel.add(login);
+        fieldsPanel1.add(loginText);
+        fieldsPanel1.add(login);
         JLabel passText = new JLabel("Password:");
-        passText.setFont(otherFont);
-        loginTextPanel.add(passText);
-        password.setFont(otherFont);
-        loginTextPanel.add(password);
+        fieldsPanel1.add(passText);
+        fieldsPanel1.add(password);
+
+        autoConnect = new JCheckBox();
+        autoConnect.setFont(otherFont);
+        autoConnect.setToolTipText("For break press \"Ctrl\" + \"Q\"");
+        JPanel loginTextPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        JTextField addIdTextFiled = new JTextField("Autoconnect");
+        addIdTextFiled.setEditable(false);
+        addIdTextFiled.setFont(otherFont);
+        addIdTextFiled.setToolTipText("For break press \"Ctrl\" + \"Q\"");
+        loginTextPanel.add(autoConnect);
+        loginTextPanel.add(addIdTextFiled);
 
         exitButton = new JButton("Exit");
-        exitButton.addActionListener(new StartActionListener(this));
+        exitButton.addActionListener(new StartActionListener());
         loginButton = new JButton("Login");
-        loginButton.addActionListener(new StartActionListener(this));
+        loginButton.addActionListener(new StartActionListener());
         registerButton = new JButton("Register");
-        registerButton.addActionListener(new StartActionListener(this));
+        registerButton.addActionListener(new StartActionListener());
 
         changePassButton = new JButton("Change password");
-        changePassButton.addActionListener(new StartActionListener(this));
+        changePassButton.addActionListener(new StartActionListener());
 
         getFileButton = new JButton("Get file from ID");
-        getFileButton.addActionListener(new StartActionListener(this));
+        getFileButton.addActionListener(new StartActionListener());
         idField = new JTextField("Enter file ID here...", 18);
 
         JPanel buttonsPanel = new JPanel(new GridLayout(1, 4, 5, 5));
@@ -163,7 +158,6 @@ public class ClientStartFrame extends JFrame {
         add(textPanel, BorderLayout.SOUTH);
 
         pack();
-        dialogFrame = new ProgressFrame();
         setVisible(true);
     }
 
@@ -221,10 +215,9 @@ public class ClientStartFrame extends JFrame {
     }
 
     private void closeStartFrame() {
-        ProgressFrame pgFrame = new ProgressFrame();
         setVisible(false);
         readWriteSystemFile(false);
-        new ClientGUI(pgFrame, clientSocket, userFiles, userSize, login.getText());
+        new ClientGUI(clientSocket, userFiles, userSize, login.getText());
         dispose();
     }
 
@@ -234,52 +227,80 @@ public class ClientStartFrame extends JFrame {
 
     class StartActionListener implements ActionListener {
 
-        private ClientStartFrame frame;
-
-        public StartActionListener(ClientStartFrame frame) {
-            this.frame = frame;
-        }
-
         @Override
         public void actionPerformed(ActionEvent e) {
             if (e.getSource() == exitButton) {
                 System.exit(0);
             }
+            lockButtons();
             if (e.getSource() == loginButton || e.getSource() == registerButton || e.getSource() == changePassButton) {
                 if (login.getText().equals("") || password.getPassword().length == 0) {
                     JOptionPane.showMessageDialog(null, "Please fill fields \"Login\" and \"Password\"!", "", JOptionPane.WARNING_MESSAGE);
+                    unlockButtons();
                     return;
                 }
-                if (tryConnect()) {
-                    if (e.getSource() == loginButton) {
 
-                        if (sendLoginMessage(UserActionEnum.GET)) {
-                            closeStartFrame();
+                if (autoConnect.isSelected()) {
+                    new Thread(new Runnable() {
+                        @Override
+                        public void run() {
+                            textArea.append(Consts.formatForDate.format(new Date()) + ". Connecting... \n");
+                            while (true) {
+                                try {
+                                    clientSocket = new Socket(ipAdress.getText(), Integer.parseInt(port.getText()));
+                                    if (clientSocket != null && clientSocket.isConnected()) {
+                                        connected = connectToSocket();
+                                    }
+                                    if (connected) break;
+                                    if (breakConnect) {
+                                        textArea.append(Consts.formatForDate.format(new Date()) + ". Interrupted by user. \n");
+                                        breakConnect = false;
+                                        break;
+                                    }
+                                    clientSocket = null;
+                                    Thread.sleep(1000);
+
+                                } catch (IOException e) {
+                                    textArea.append(Consts.formatForDate.format(new Date()) + ". Can't connect to server... \n");
+                                    textArea.append(e.getMessage() + "\n");
+                                } catch (InterruptedException e) {
+                                    textArea.append(e.getMessage() + "\n");
+                                }
+                            }
+                            if (clientSocket != null) connectionEstablished(clientSocket, e.getSource());
                         }
-                    } else if (e.getSource() == registerButton) {
-                        if (sendLoginMessage(UserActionEnum.ADD)) {
-                            closeStartFrame();
-                        }
-                    } else if (e.getSource() == changePassButton) {
-                        new NewPassFrame(this);
+                    }).start();
+                } else {
+                    if (tryConnect()) {
+                        connectionEstablished(clientSocket, e.getSource());
                     }
                 }
             } else if (e.getSource() == getFileButton) {
                 if (idField.getText().equals("") || idField.getText().equals("Enter file ID here...")) {
                     JOptionPane.showMessageDialog(null, "Please enter file ID!", "", JOptionPane.WARNING_MESSAGE);
+                    unlockButtons();
                     return;
                 }
                 if (tryConnect()) {
+                    connectionEstablished(clientSocket, e.getSource());
 
-                    getFileOnServerFromID();
-                    try {
-                        clientSocket.close();
-                        clientSocket = null;
-                    } catch (IOException e1) {
-                        e1.printStackTrace();
-                    }
                 }
             }
+            unlockButtons();
+        }
+
+        private void unlockButtons() {
+            getFileButton.setEnabled(true);
+            registerButton.setEnabled(true);
+            loginButton.setEnabled(true);
+            changePassButton.setEnabled(true);
+        }
+
+        private void lockButtons() {
+            getFileButton.setEnabled(false);
+            registerButton.setEnabled(false);
+            loginButton.setEnabled(false);
+            changePassButton.setEnabled(false);
         }
 
         private void getFileOnServerFromID() {
@@ -289,7 +310,6 @@ public class ClientStartFrame extends JFrame {
             int ret = fileChooser.showDialog(null, "Select file");
             if (ret == JFileChooser.APPROVE_OPTION) {
                 File file = fileChooser.getSelectedFile();
-                dialogFrame.changeVisible(true);
                 try {
                     String fileID = idField.getText();
                     FileMessage fm = new FileMessage(null, FileActionEnum.GET, null, fileID);
@@ -320,69 +340,78 @@ public class ClientStartFrame extends JFrame {
                 } catch (IOException e1) {
                     e1.printStackTrace();
                 }
-                dialogFrame.changeVisible(false);
+            }
+        }
+
+        private void connectionEstablished(Socket clientSocket, Object source) {
+
+            if (source == loginButton) {
+                if (sendLoginMessage(UserActionEnum.GET)) {
+                    closeStartFrame();
+                }
+            } else if (source == registerButton) {
+                if (sendLoginMessage(UserActionEnum.ADD)) {
+                    closeStartFrame();
+                }
+            } else if (source == changePassButton) {
+                setEnabled(false);
+                new NewPassFrame(this);
+
+            } else if (source == getFileButton) {
+                getFileOnServerFromID();
+                try {
+                    clientSocket.close();
+                } catch (IOException e1) {
+                    e1.printStackTrace();
+                }
+                clientSocket = null;
             }
         }
 
         private boolean tryConnect() {
-            boolean socketUp = false;
 
-            if (autoConnect.isSelected()) {
-
-                breakConnect = false;
-                new Thread(() -> {
-                    while (true) {
-                        if (connectToSocket()) break;
-                        if (breakConnect) break;
-                        try {
-                            sleep(2000);
-                        } catch (InterruptedException e1) {
-                            e1.printStackTrace();
-                        }
-                    }
-//                    Thread.currentThread().interrupt();
-
-                    if (breakConnect) {
-                        textArea.append("Auto connection stopped by user. \n");
-                        breakConnect = false;
-                    }
-
-                }).start();
-
-            } else {
-                socketUp = connectToSocket();
-            }
-
-            if (clientSocket != null) {
-                socketUp = true;
-            }
-            return socketUp;
-        }
-
-        private boolean connectToSocket() {
             try {
                 clientSocket = new Socket(ipAdress.getText(), Integer.parseInt(port.getText()));
+
             } catch (IOException e1) {
                 textArea.append(Consts.formatForDate.format(new Date()) + ". Can't connect to server... \n");
             }
+
             if (clientSocket != null) {
-                try {
-                    clientSocket.setSoTimeout(30000);
-                    if (connectAccepted(clientSocket)) {
-                        if (sendSecurityMessage()) {
-                            clientSocket.setSoTimeout(0);
-                            return true;
-                        } else {
-                            textArea.append(Consts.formatForDate.format(new Date()) + "MyDropBoxSecurity system not work! Try again later... \n");
-                        }
-                    } else {
-                        clientSocket = null;
-                    }
-                } catch (SocketException e1) {
-                    clientSocket = null;
-                    textArea.append(Consts.formatForDate.format(new Date()) + ". Server is busy! Try again later... \n");
-                }
+                connected = connectToSocket();
+                if (connected) return true;
             }
+            return false;
+        }
+
+        private boolean connectToSocket() {
+
+            try {
+//                clientSocket.setSoTimeout(30000);
+                clientSocket.setSoTimeout(10000);
+                if (connectAccepted(clientSocket)) {
+                    if (sendSecurityMessage()) {
+                        clientSocket.setSoTimeout(0);
+                        return true;
+                    } else {
+                        textArea.append(Consts.formatForDate.format(new Date()) + "MyDropBoxSecurity system not work! Try again later... \n");
+                    }
+                } else {
+                    clientSocket.close();
+                    clientSocket = null;
+                }
+            } catch (SocketException e1) {
+                try {
+                    clientSocket.close();
+                } catch (IOException e) {
+                    textArea.append(Consts.formatForDate.format(new Date()) + ". IO error... \n");
+                }
+                textArea.append(Consts.formatForDate.format(new Date()) + ". Socket error... \n");
+            } catch (IOException e) {
+                textArea.append(Consts.formatForDate.format(new Date()) + ". IO error... \n");
+            }
+
+            clientSocket = null;
             return false;
         }
 
@@ -432,6 +461,7 @@ public class ClientStartFrame extends JFrame {
                         ObjectInputStream ois = new ObjectInputStream(clientSocket.getInputStream());
                         AnswerMessage aMsg = (AnswerMessage) ois.readObject();
                         textArea.append(Consts.formatForDate.format(new Date()) + ". " + aMsg.getMsg() + "\n");
+                        JOptionPane.showMessageDialog(null, aMsg.getMsg(), "", JOptionPane.WARNING_MESSAGE);
                         if (aMsg.isYes()) {
                             userFiles = aMsg.getFiles();
                             userSize = aMsg.getSize();
@@ -483,7 +513,6 @@ public class ClientStartFrame extends JFrame {
             }
             return false;
         }
-
     }
 
     private class MyDispatcher implements KeyEventDispatcher {
@@ -500,18 +529,20 @@ public class ClientStartFrame extends JFrame {
 
     private class NewPassFrame extends JFrame {
 
-        private StartActionListener listener;
+//        private StartActionListener listener;
 
         public NewPassFrame(StartActionListener listener) {
 
-            this.listener = listener;
+//            this.listener = listener;
             setSize(300, 100);
             setTitle("Enter new password");
             setResizable(false);
-            setLocation(500, 100);
+            int[] coords = ClientStartFrame.getStartCoords(this);
+            setLocation((int) (coords[0]- getWidth()) / 2, (int) (coords[1] - getHeight()) / 2);
+
             setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
-            JPasswordField passwordNew = new JPasswordField(10);
-            passwordNew.setFont(new Font("TimesRoman", Font.BOLD, 16));
+            JPasswordField passwordNew = new JPasswordField(12);
+//            passwordNew.setFont(new Font("TimesRoman", Font.BOLD, 16));
             JButton setPass = new JButton("OK");
             setPass.addActionListener(new ActionListener() {
                 @Override
@@ -535,4 +566,18 @@ public class ClientStartFrame extends JFrame {
             setVisible(true);
         }
     }
+
+    public static int[] getStartCoords(JFrame frame){
+        int[] coords = new int[2];
+        Toolkit kit = frame.getToolkit();
+        GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
+        GraphicsDevice[] gs = ge.getScreenDevices();
+        Insets in = kit.getScreenInsets(gs[0].getDefaultConfiguration());
+        Dimension d = kit.getScreenSize();
+        coords[0] = (d.width - in.left - in.right);
+        coords[1] = (d.height - in.top - in.bottom);
+        return coords;
+    }
+
 }
+

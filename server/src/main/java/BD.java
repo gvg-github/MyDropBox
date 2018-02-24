@@ -23,25 +23,11 @@ public class BD {
         }
     }
 
-//    public void disconnect(ServerThread thread) {
-//        Connection connection = null;
-//        if (connections.containsKey(thread)) {
-//            connection = connections.get(thread);
-//            try {
-//                connection.close();
-//                connections.remove(thread);
-//            } catch (SQLException e) {
-//                e.printStackTrace();
-//            }
-//        }
-//    }
-
     private synchronized Connection getConnection(ServerThread thread) {
         Connection connection = null;
         try {
             if (connections.containsKey(thread)) {
                 connections.remove(thread);
-//                connection = connections.get(thread);
             }
             connection = DriverManager.getConnection("jdbc:sqlite:MyDB.db");
             connections.put(thread, connection);
@@ -68,7 +54,6 @@ public class BD {
                 }
             }
             rs.close();
-
         }
         return userFind;
     }

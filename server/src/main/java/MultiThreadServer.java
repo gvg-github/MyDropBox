@@ -11,6 +11,7 @@ import java.util.concurrent.Executors;
 
 public class MultiThreadServer extends Thread {
 
+    private static MultiThreadServer instance = null;
     private PasswordAuthentication pa;
     private BD bd;
     private int port;
@@ -21,7 +22,14 @@ public class MultiThreadServer extends Thread {
 
     private static ExecutorService ex = Executors.newFixedThreadPool(2);
 
-    public MultiThreadServer(JTextArea textArea, int port) {
+    public static synchronized MultiThreadServer getInstance(JTextArea textArea, int port){
+        if(instance == null){
+            instance = new MultiThreadServer(textArea, port);
+        }
+        return instance;
+    }
+
+    private MultiThreadServer(JTextArea textArea, int port) {
         this.port = port;
         this.textArea = textArea;
         threadList = new ArrayList<>();
@@ -53,7 +61,6 @@ public class MultiThreadServer extends Thread {
         } catch (IOException e) {
             e.printStackTrace();
         }
-
     }
 
     public void stopCurrentServer() {

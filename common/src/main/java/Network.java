@@ -1,4 +1,6 @@
+import javax.swing.*;
 import java.io.*;
+import java.lang.reflect.InvocationTargetException;
 import java.net.Socket;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -12,12 +14,12 @@ public class Network {
         return SendMessage(clientSocket, fdm);
     }
 
-    public static AnswerMessage sendFileMessage(Socket clientSocket, String folderName, FileActionEnum type, String newName, String tecPath) {
-
-        FileMessage fm = new FileMessage(folderName, type, newName, tecPath);
-        return SendMessage(clientSocket, fm);
-
-    }
+//    public static AnswerMessage sendFileMessage(Socket clientSocket, String folderName, FileActionEnum type, String newName, String tecPath) {
+//
+//        FileMessage fm = new FileMessage(folderName, type, newName, tecPath);
+//        return SendMessage(clientSocket, fm);
+//
+//    }
 
     public static void sendAnswerMessage(Socket clientSocket, String user, boolean status, String msg) {
         File[] userFiles = null;
@@ -63,27 +65,27 @@ public class Network {
         return ansMsg;
     }
 
-    private static AnswerMessage SendMessage(Socket clientSocket, FileMessage fdm) {
-        AnswerMessage ansMsg = null;
-        ObjectOutputStream oos = null;
-        try {
-            oos = new ObjectOutputStream(clientSocket.getOutputStream());
-            oos.writeObject(fdm);
-            oos.flush();
-            ObjectInputStream ois = new ObjectInputStream(clientSocket.getInputStream());
-            Object obj = ois.readObject();
-            if (obj instanceof AnswerMessage) {
-                ansMsg = (AnswerMessage) obj;
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (ClassNotFoundException e) {
-            e.printStackTrace();
-        }
-        return ansMsg;
-    }
+//    private static AnswerMessage SendMessage(Socket clientSocket, FileMessage fdm) {
+//        AnswerMessage ansMsg = null;
+//        ObjectOutputStream oos = null;
+//        try {
+//            oos = new ObjectOutputStream(clientSocket.getOutputStream());
+//            oos.writeObject(fdm);
+//            oos.flush();
+//            ObjectInputStream ois = new ObjectInputStream(clientSocket.getInputStream());
+//            Object obj = ois.readObject();
+//            if (obj instanceof AnswerMessage) {
+//                ansMsg = (AnswerMessage) obj;
+//            }
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        } catch (ClassNotFoundException e) {
+//            e.printStackTrace();
+//        }
+//        return ansMsg;
+//    }
 
-    public static AnswerMessage sendFile(File file, String filename, Socket socket) throws IOException, ClassNotFoundException {
+    public static AnswerMessage sendFile(File file, String filename, Socket socket) throws IOException, ClassNotFoundException, InvocationTargetException, InterruptedException {
         AnswerMessage ansMsg = null;
         long fileSize = Files.size(Paths.get(file.getAbsolutePath()));
         if (fileSize <= Consts.FILE_SIZE) {
@@ -180,12 +182,19 @@ public class Network {
         return gotIt;
     }
 
-    public static boolean getFile(String pathToFile, Socket socket, String user) throws IOException, ClassNotFoundException {
+    public static boolean getFile(String pathToFile, Socket socket) throws IOException, ClassNotFoundException {
 
         boolean getFile = false;
         File file = new File(pathToFile);
         if (file.exists()){
-            AnswerMessage ansMsg = sendFile(file, file.getName(), socket);
+            AnswerMessage ansMsg = null;
+            try {
+                ansMsg = sendFile(file, file.getName(), socket);
+            } catch (InvocationTargetException e) {
+                e.printStackTrace();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
             getFile = ansMsg.isYes();
         }
         return getFile;

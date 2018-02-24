@@ -7,11 +7,7 @@ import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 
 public class WorkWithFiles {
-    public static final String DIR_PATH = "D:\\FilesDB\\";
-
-//    public static String getFullPath(String tecPath) {
-//        return new String(DIR_PATH + tecPath);
-//    }
+//    public static final String DIR_PATH = "D:\\FilesDB\\";
 
     public static boolean saveFileOnDisk(String dir, byte[] arr) {
         try {
@@ -24,14 +20,14 @@ public class WorkWithFiles {
     }
 
     public static boolean verifyPathForFile(String path) {
-        if (Files.exists(Paths.get(path))){
+        if (Files.exists(Paths.get(path))) {
             return false;
         }
         return true;
     }
 
     public static File[] getUserFileStructure(String user) {
-        File file = new File(DIR_PATH + user);
+        File file = new File(Consts.DIR_PATH + user);
         return file.listFiles();
     }
 
@@ -39,9 +35,9 @@ public class WorkWithFiles {
 
         int size = 0;
         for (int i = 0; i < files.length; i++) {
-            if (files[i].isFile()){
+            if (files[i].isFile()) {
                 size += files[i].length();
-            }else{
+            } else {
                 size += getUserFileSize(user, files[i].listFiles());
             }
         }
@@ -50,7 +46,7 @@ public class WorkWithFiles {
 
     public static boolean makeDir(String nameDir) {
         boolean makeDir = false;
-        String pathDir = DIR_PATH + nameDir;
+        String pathDir = Consts.DIR_PATH + nameDir;
         try {
             Files.createDirectory(Paths.get(pathDir));
             makeDir = true;
@@ -74,9 +70,9 @@ public class WorkWithFiles {
 
     public static boolean renameFileOnServer(File file, String newName) {
 
-        if (file.renameTo(new File(newName))){
+        if (file.renameTo(new File(newName))) {
             return true;
-        }else{
+        } else {
             return false;
         }
     }
@@ -84,14 +80,25 @@ public class WorkWithFiles {
     public static boolean transferFileOnServer(File file, String newName) {
         String tecName = file.getAbsolutePath();
         int index1 = tecName.lastIndexOf("\\");
-        StringBuilder nameBuilder = new StringBuilder(DIR_PATH + newName);
+        StringBuilder nameBuilder = new StringBuilder(Consts.DIR_PATH + newName);
         nameBuilder.append(tecName.substring(index1));
         return file.renameTo(new File(nameBuilder.toString()));
     }
 
+    public static boolean renameFolderOnServer(File folder, String newName) {
+
+        File file = new File(folder.getAbsolutePath());
+        if (file.exists() && file.isDirectory() && file.listFiles().length == 0) {
+            if (file.renameTo(new File(newName))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public static boolean deleteDirOnServer(String nameDir) {
         File file = new File(nameDir);
-        if (file.exists() && file.isDirectory() && file.listFiles().length == 0){
+        if (file.exists() && file.isDirectory() && file.listFiles().length == 0) {
             try {
                 Files.delete(Paths.get(nameDir));
             } catch (IOException e) {

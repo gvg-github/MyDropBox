@@ -36,6 +36,7 @@ class ServerGUI extends JFrame implements ActionListener {
         stopButton = new JButton("Stop server");
         stopButton.setMnemonic(java.awt.event.KeyEvent.VK_S);
         stopButton.addActionListener(this);
+        stopButton.setEnabled(false);
 
         buttonPanel.add(startButton);
         buttonPanel.add(stopButton);
@@ -52,11 +53,15 @@ class ServerGUI extends JFrame implements ActionListener {
     public void actionPerformed(ActionEvent e) {
         if (e.getSource() == startButton) {
             if (server == null || !server.isAlive()){
-                server = new MultiThreadServer(textArea, Consts.PORT);
+                server = MultiThreadServer.getInstance(textArea, Consts.PORT);
                 server.start();
+                startButton.setEnabled(false);
+                stopButton.setEnabled(true);
             }
         } else if (e.getSource() == stopButton) {
             if (server != null && server.isAlive()) server.stopCurrentServer();
+            startButton.setEnabled(true);
+            stopButton.setEnabled(false);
         }
     }
 
